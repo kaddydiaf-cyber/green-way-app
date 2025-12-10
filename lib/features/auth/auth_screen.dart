@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:green_way_new/app.dart';
 import 'package:green_way_new/auth_service.dart';
+import 'package:green_way_new/data/wilayas.dart';
 import 'package:green_way_new/features/citizen/citizen_home_screen.dart';
 import 'package:green_way_new/features/collector/collector_home_screen.dart';
 import 'package:green_way_new/features/factory/factory_home_screen.dart';
@@ -16,6 +17,7 @@ class AuthScreen extends ConsumerStatefulWidget {
 class _AuthScreenState extends ConsumerState<AuthScreen> {
   bool isLogin = true;
   String? selectedRole;
+  String? selectedWilaya;
   bool _isLoading = false;
   bool _obscurePassword = true;
 
@@ -178,6 +180,39 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                             validator: (v) => v!.isEmpty ? 'مطلوب' : null,
                           ),
                           const SizedBox(height: 16),
+
+                          // اختيار الولاية
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            decoration: BoxDecoration(
+                              color: Colors.grey.shade50,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: Colors.grey.shade200),
+                            ),
+                            child: DropdownButtonHideUnderline(
+                              child: DropdownButton<String>(
+                                isExpanded: true,
+                                hint: const Row(
+                                  children: [
+                                    Icon(Icons.location_city, color: Color(0xFF4CAF50)),
+                                    SizedBox(width: 12),
+                                    Text('اختر الولاية'),
+                                  ],
+                                ),
+                                value: selectedWilaya,
+                                items: Wilayas.list.map((wilaya) {
+                                  return DropdownMenuItem<String>(
+                                    value: wilaya['code'],
+                                    child: Text('${wilaya['code']} - ${wilaya['name']}'),
+                                  );
+                                }).toList(),
+                                onChanged: (value) {
+                                  setState(() => selectedWilaya = value);
+                                },
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 16),
                         ],
 
                         _buildTextField(
@@ -332,9 +367,17 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
+
     if (!isLogin && selectedRole == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('اختر نوع الحساب'), backgroundColor: Colors.red),
+      );
+      return;
+    }
+
+    if (!isLogin && selectedWilaya == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('اختر الولاية'), backgroundColor: Colors.red),
       );
       return;
     }
@@ -358,6 +401,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
           name: _nameController.text.trim(),
           phone: _phoneController.text.trim(),
           role: selectedRole!,
+          wilaya: selectedWilaya!,
         );
         _goToHome(selectedRole);
       }

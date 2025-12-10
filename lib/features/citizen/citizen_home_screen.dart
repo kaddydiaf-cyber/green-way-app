@@ -138,18 +138,6 @@ class CitizenHomeScreen extends ConsumerWidget {
                       Navigator.push(context, MaterialPageRoute(builder: (_) => const WalletScreen()));
                     },
                   ),
-
-                  // الملف الشخصي
-                  _buildServiceCard(
-                    context,
-                    icon: Icons.person,
-                    title: 'الملف الشخصي',
-                    subtitle: 'عرض وتعديل بياناتك',
-                    color: Colors.purple,
-                    onTap: () {
-                      Navigator.push(context, MaterialPageRoute(builder: (_) => const ProfileScreen()));
-                    },
-                  ),
                 ],
               ),
             ),

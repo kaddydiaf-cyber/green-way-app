@@ -16,6 +16,7 @@ class AuthService {
     required String name,
     required String phone,
     required String role,
+    required String wilaya,
   }) async {
     UserCredential result = await _auth.createUserWithEmailAndPassword(
       email: email,
@@ -33,6 +34,7 @@ class AuthService {
         'name': name,
         'phone': phone,
         'role': role,
+        'wilaya': wilaya,
         'createdAt': FieldValue.serverTimestamp(),
         'isActive': true,
         'walletBalance': 0.0,
@@ -63,6 +65,19 @@ class AuthService {
       if (doc.exists) {
         Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
         return data['role'] as String?;
+      }
+      return null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  Future<String?> getUserWilaya(String uid) async {
+    try {
+      DocumentSnapshot doc = await _firestore.collection('users').doc(uid).get();
+      if (doc.exists) {
+        Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+        return data['wilaya'] as String?;
       }
       return null;
     } catch (e) {

@@ -3,19 +3,56 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:green_way_new/auth_service.dart';
-import 'package:green_way_new/features/auth/auth_screen.dart';
+import 'package:green_way_new/data/wilayas.dart';
 import 'package:green_way_new/features/chat/chat_screen.dart';
 import 'package:green_way_new/features/wallet/wallet_screen.dart';
 import 'package:green_way_new/features/profile/profile_screen.dart';
+import 'package:green_way_new/notification_service.dart';
 
-class CollectorHomeScreen extends ConsumerWidget {
+class CollectorHomeScreen extends ConsumerStatefulWidget {
   const CollectorHomeScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<CollectorHomeScreen> createState() => _CollectorHomeScreenState();
+}
+
+class _CollectorHomeScreenState extends ConsumerState<CollectorHomeScreen> {
+  String? userWilaya;
+  String? userWilayaName;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserWilaya();
+  }
+
+  Future<void> _loadUserWilaya() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .get();
+
+      setState(() {
+        userWilaya = userDoc.data()?['wilaya'] ?? '';
+        userWilayaName = Wilayas.getNameByCode(userWilaya ?? '');
+        _isLoading = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final authService = ref.read(authServiceProvider);
-    final user = authService.currentUser;
-    final userName = user?.displayName ?? 'جامع';
+    final userName = authService.currentUser?.displayName ?? 'جامع';
+
+    if (_isLoading) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
 
     return DefaultTabController(
       length: 2,
@@ -25,7 +62,7 @@ class CollectorHomeScreen extends ConsumerWidget {
           headerSliverBuilder: (context, innerBoxIsScrolled) {
             return [
               SliverAppBar(
-                expandedHeight: 200,
+                expandedHeight: 220,
                 floating: false,
                 pinned: true,
                 backgroundColor: const Color(0xFF4CAF50),
@@ -95,20 +132,23 @@ class CollectorHomeScreen extends ConsumerWidget {
                               ],
                             ),
                             const Spacer(),
-                            // إحصائيات سريعة
-                            StreamBuilder<QuerySnapshot>(
-                              stream: FirebaseFirestore.instance
-                                  .collection('requests')
-                                  .where('status', isEqualTo: 'accepted')
-                                  .snapshots(),
-                              builder: (context, snapshot) {
-                                final acceptedCount = snapshot.data?.docs.length ?? 0;
-                                return Row(
-                                  children: [
-                                    _buildMiniStat(Icons.assignment, '$acceptedCount', 'طلبات نشطة'),
-                                  ],
-                                );
-                              },
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withAlpha(40),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.location_city, color: Colors.white, size: 20),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    'طلبات ولاية $userWilayaName',
+                                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                                  ),
+                                ],
+                              ),
                             ),
                           ],
                         ),
@@ -129,40 +169,32 @@ class CollectorHomeScreen extends ConsumerWidget {
               ),
             ];
           },
-          body: const TabBarView(
+          body: TabBarView(
             children: [
-              _AvailableRequestsTab(),
-              _MyAcceptedRequestsTab(),
+              _AvailableRequestsTab(wilaya: userWilaya ?? ''),
+              _MyAcceptedRequestsTab(collectorId: authService.currentUser?.uid ?? ''),
             ],
           ),
         ),
       ),
     );
   }
-
-  Widget _buildMiniStat(IconData icon, String value, String label) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: BoxDecoration(
-        color: Colors.white.withAlpha(40),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, color: Colors.white, size: 20),
-          const SizedBox(width: 8),
-          Text(
-            '$value $label',
-            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-          ),
-        ],
-      ),
-    );
-  }
 }
 
+// ==================== طلبات متاحة ====================
 class _AvailableRequestsTab extends StatelessWidget {
-  const _AvailableRequestsTab();
+  final String wilaya;
+
+  const _AvailableRequestsTab({required this.wilaya});
+
+  final wasteTypes = const {
+    'plastic': {'name': 'بلاستيك', 'icon': Icons.local_drink, 'color': Colors.blue},
+    'paper': {'name': 'ورق وكرتون', 'icon': Icons.description, 'color': Colors.brown},
+    'glass': {'name': 'زجاج', 'icon': Icons.wine_bar, 'color': Colors.green},
+    'metal': {'name': 'معادن', 'icon': Icons.settings, 'color': Colors.grey},
+    'electronics': {'name': 'إلكترونيات', 'icon': Icons.devices, 'color': Colors.purple},
+    'organic': {'name': 'عضوية', 'icon': Icons.eco, 'color': Colors.lightGreen},
+  };
 
   @override
   Widget build(BuildContext context) {
@@ -170,6 +202,7 @@ class _AvailableRequestsTab extends StatelessWidget {
       stream: FirebaseFirestore.instance
           .collection('requests')
           .where('status', isEqualTo: 'pending')
+          .where('wilaya', isEqualTo: wilaya)
           .snapshots(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
@@ -193,13 +226,8 @@ class _AvailableRequestsTab extends StatelessWidget {
                 ),
                 const SizedBox(height: 16),
                 const Text(
-                  'لا توجد طلبات متاحة',
+                  'لا توجد طلبات متاحة في ولايتك',
                   style: TextStyle(fontSize: 18, color: Colors.grey, fontWeight: FontWeight.w500),
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  'سيتم إشعارك عند وجود طلبات جديدة',
-                  style: TextStyle(color: Colors.grey),
                 ),
               ],
             ),
@@ -212,31 +240,14 @@ class _AvailableRequestsTab extends StatelessWidget {
           itemBuilder: (context, index) {
             final doc = requests[index];
             final request = doc.data() as Map<String, dynamic>;
-            return _RequestCard(docId: doc.id, request: request);
+            return _buildRequestCard(context, doc.id, request);
           },
         );
       },
     );
   }
-}
 
-class _RequestCard extends StatelessWidget {
-  final String docId;
-  final Map<String, dynamic> request;
-
-  const _RequestCard({required this.docId, required this.request});
-
-  final wasteTypes = const {
-    'plastic': {'name': 'بلاستيك', 'icon': Icons.local_drink, 'color': Colors.blue},
-    'paper': {'name': 'ورق وكرتون', 'icon': Icons.description, 'color': Colors.brown},
-    'glass': {'name': 'زجاج', 'icon': Icons.wine_bar, 'color': Colors.green},
-    'metal': {'name': 'معادن', 'icon': Icons.settings, 'color': Colors.grey},
-    'electronics': {'name': 'إلكترونيات', 'icon': Icons.devices, 'color': Colors.purple},
-    'organic': {'name': 'عضوية', 'icon': Icons.eco, 'color': Colors.lightGreen},
-  };
-
-  @override
-  Widget build(BuildContext context) {
+  Widget _buildRequestCard(BuildContext context, String docId, Map<String, dynamic> request) {
     final wasteType = wasteTypes[request['wasteType']] ?? wasteTypes['plastic']!;
 
     return Container(
@@ -304,11 +315,7 @@ class _RequestCard extends StatelessWidget {
                       ),
                       child: const Text(
                         'جديد',
-                        style: TextStyle(
-                          color: Colors.orange,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 12,
-                        ),
+                        style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold, fontSize: 12),
                       ),
                     ),
                   ],
@@ -318,10 +325,7 @@ class _RequestCard extends StatelessWidget {
                   children: [
                     Icon(Icons.person, size: 16, color: Colors.grey.shade600),
                     const SizedBox(width: 6),
-                    Text(
-                      request['userName'] ?? 'مستخدم',
-                      style: TextStyle(color: Colors.grey.shade600),
-                    ),
+                    Text(request['userName'] ?? 'مستخدم', style: TextStyle(color: Colors.grey.shade600)),
                   ],
                 ),
                 const SizedBox(height: 8),
@@ -352,7 +356,7 @@ class _RequestCard extends StatelessWidget {
               ),
             ),
             child: ElevatedButton.icon(
-              onPressed: () => _acceptRequest(context),
+              onPressed: () => _acceptRequest(context, docId, request),
               icon: const Icon(Icons.check_circle),
               label: const Text('قبول الطلب'),
               style: ElevatedButton.styleFrom(
@@ -368,7 +372,7 @@ class _RequestCard extends StatelessWidget {
     );
   }
 
-  Future<void> _acceptRequest(BuildContext context) async {
+  Future<void> _acceptRequest(BuildContext context, String docId, Map<String, dynamic> request) async {
     try {
       final user = FirebaseAuth.instance.currentUser;
       await FirebaseFirestore.instance.collection('requests').doc(docId).update({
@@ -377,6 +381,12 @@ class _RequestCard extends StatelessWidget {
         'collectorName': user?.displayName ?? 'جامع',
         'acceptedAt': FieldValue.serverTimestamp(),
       });
+
+      await NotificationService.showNotification(
+        title: 'تم قبول الطلب ✅',
+        body: 'لقد قبلت طلب ${request['userName'] ?? 'المواطن'}',
+      );
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('تم قبول الطلب بنجاح!'), backgroundColor: Colors.green),
       );
@@ -388,8 +398,20 @@ class _RequestCard extends StatelessWidget {
   }
 }
 
+// ==================== طلباتي المقبولة ====================
 class _MyAcceptedRequestsTab extends StatelessWidget {
-  const _MyAcceptedRequestsTab();
+  final String collectorId;
+
+  const _MyAcceptedRequestsTab({required this.collectorId});
+
+  final wasteTypes = const {
+    'plastic': {'name': 'بلاستيك', 'icon': Icons.local_drink, 'color': Colors.blue},
+    'paper': {'name': 'ورق وكرتون', 'icon': Icons.description, 'color': Colors.brown},
+    'glass': {'name': 'زجاج', 'icon': Icons.wine_bar, 'color': Colors.green},
+    'metal': {'name': 'معادن', 'icon': Icons.settings, 'color': Colors.grey},
+    'electronics': {'name': 'إلكترونيات', 'icon': Icons.devices, 'color': Colors.purple},
+    'organic': {'name': 'عضوية', 'icon': Icons.eco, 'color': Colors.lightGreen},
+  };
 
   @override
   Widget build(BuildContext context) {
@@ -397,6 +419,7 @@ class _MyAcceptedRequestsTab extends StatelessWidget {
       stream: FirebaseFirestore.instance
           .collection('requests')
           .where('status', isEqualTo: 'accepted')
+          .where('collectorId', isEqualTo: collectorId)
           .snapshots(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
@@ -423,11 +446,6 @@ class _MyAcceptedRequestsTab extends StatelessWidget {
                   'لا توجد طلبات مقبولة',
                   style: TextStyle(fontSize: 18, color: Colors.grey, fontWeight: FontWeight.w500),
                 ),
-                const SizedBox(height: 8),
-                const Text(
-                  'اقبل طلباً من قائمة الطلبات المتاحة',
-                  style: TextStyle(color: Colors.grey),
-                ),
               ],
             ),
           );
@@ -439,31 +457,14 @@ class _MyAcceptedRequestsTab extends StatelessWidget {
           itemBuilder: (context, index) {
             final doc = requests[index];
             final request = doc.data() as Map<String, dynamic>;
-            return _AcceptedCard(docId: doc.id, request: request);
+            return _buildAcceptedCard(context, doc.id, request);
           },
         );
       },
     );
   }
-}
 
-class _AcceptedCard extends StatelessWidget {
-  final String docId;
-  final Map<String, dynamic> request;
-
-  const _AcceptedCard({required this.docId, required this.request});
-
-  final wasteTypes = const {
-    'plastic': {'name': 'بلاستيك', 'icon': Icons.local_drink, 'color': Colors.blue},
-    'paper': {'name': 'ورق وكرتون', 'icon': Icons.description, 'color': Colors.brown},
-    'glass': {'name': 'زجاج', 'icon': Icons.wine_bar, 'color': Colors.green},
-    'metal': {'name': 'معادن', 'icon': Icons.settings, 'color': Colors.grey},
-    'electronics': {'name': 'إلكترونيات', 'icon': Icons.devices, 'color': Colors.purple},
-    'organic': {'name': 'عضوية', 'icon': Icons.eco, 'color': Colors.lightGreen},
-  };
-
-  @override
-  Widget build(BuildContext context) {
+  Widget _buildAcceptedCard(BuildContext context, String docId, Map<String, dynamic> request) {
     final wasteType = wasteTypes[request['wasteType']] ?? wasteTypes['plastic']!;
 
     return Container(
@@ -531,11 +532,7 @@ class _AcceptedCard extends StatelessWidget {
                       ),
                       child: const Text(
                         'تم القبول',
-                        style: TextStyle(
-                          color: Colors.blue,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 12,
-                        ),
+                        style: TextStyle(color: Colors.blue, fontWeight: FontWeight.bold, fontSize: 12),
                       ),
                     ),
                   ],
@@ -545,10 +542,7 @@ class _AcceptedCard extends StatelessWidget {
                   children: [
                     Icon(Icons.person, size: 16, color: Colors.grey.shade600),
                     const SizedBox(width: 6),
-                    Text(
-                      request['userName'] ?? 'مستخدم',
-                      style: TextStyle(color: Colors.grey.shade600),
-                    ),
+                    Text(request['userName'] ?? 'مستخدم', style: TextStyle(color: Colors.grey.shade600)),
                   ],
                 ),
                 const SizedBox(height: 8),
@@ -606,7 +600,7 @@ class _AcceptedCard extends StatelessWidget {
                 const SizedBox(width: 12),
                 Expanded(
                   child: ElevatedButton.icon(
-                    onPressed: () => _completeRequest(context),
+                    onPressed: () => _completeRequest(context, docId, request),
                     icon: const Icon(Icons.done_all),
                     label: const Text('تم الجمع'),
                     style: ElevatedButton.styleFrom(
@@ -625,12 +619,18 @@ class _AcceptedCard extends StatelessWidget {
     );
   }
 
-  Future<void> _completeRequest(BuildContext context) async {
+  Future<void> _completeRequest(BuildContext context, String docId, Map<String, dynamic> request) async {
     try {
       await FirebaseFirestore.instance.collection('requests').doc(docId).update({
         'status': 'completed',
         'completedAt': FieldValue.serverTimestamp(),
       });
+
+      await NotificationService.showNotification(
+        title: 'تم إكمال الجمع ✅',
+        body: 'أحسنت! تم جمع النفايات من ${request['userName'] ?? 'المواطن'}',
+      );
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('تم إكمال الطلب بنجاح!'), backgroundColor: Colors.green),
       );
