@@ -115,15 +115,36 @@ class CitizenHomeScreen extends ConsumerWidget {
                     },
                   ),
 
-                  // طلباتي
-                  _buildServiceCard(
-                    context,
-                    icon: Icons.list_alt,
-                    title: 'طلباتي',
-                    subtitle: 'عرض جميع طلباتك',
-                    color: Colors.blue,
-                    onTap: () {
-                      Navigator.push(context, MaterialPageRoute(builder: (_) => const MyRequestsScreen()));
+                  // طلباتي مع Badge للرسائل
+                  StreamBuilder<QuerySnapshot>(
+                    stream: FirebaseFirestore.instance
+                        .collection('requests')
+                        .where('userId', isEqualTo: user?.uid)
+                        .where('status', isEqualTo: 'accepted')
+                        .snapshots(),
+                    builder: (context, snapshot) {
+                      int unreadMessages = 0;
+
+                      // حساب الرسائل غير المقروءة
+                      if (snapshot.hasData) {
+                        for (var doc in snapshot.data!.docs) {
+                          final data = doc.data() as Map<String, dynamic>;
+                          final hasNewMessage = data['hasNewMessageForCitizen'] ?? false;
+                          if (hasNewMessage) unreadMessages++;
+                        }
+                      }
+
+                      return _buildServiceCardWithBadge(
+                        context,
+                        icon: Icons.list_alt,
+                        title: 'طلباتي',
+                        subtitle: 'عرض جميع طلباتك',
+                        color: Colors.blue,
+                        badgeCount: unreadMessages,
+                        onTap: () {
+                          Navigator.push(context, MaterialPageRoute(builder: (_) => const MyRequestsScreen()));
+                        },
+                      );
                     },
                   ),
 
@@ -239,6 +260,117 @@ class CitizenHomeScreen extends ConsumerWidget {
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
                         ),
+                      ),
+                      Text(
+                        subtitle,
+                        style: const TextStyle(color: Colors.grey, fontSize: 12),
+                      ),
+                    ],
+                  ),
+                ),
+                const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // بطاقة الخدمة مع Badge
+  Widget _buildServiceCardWithBadge(
+      BuildContext context, {
+        required IconData icon,
+        required String title,
+        required String subtitle,
+        required Color color,
+        required int badgeCount,
+        required VoidCallback onTap,
+      }) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: Material(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(16),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                // الأيقونة مع Badge
+                Stack(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: color.withAlpha(30),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(icon, color: color, size: 28),
+                    ),
+                    // النقطة الحمراء
+                    if (badgeCount > 0)
+                      Positioned(
+                        right: 0,
+                        top: 0,
+                        child: Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: const BoxDecoration(
+                            color: Colors.red,
+                            shape: BoxShape.circle,
+                          ),
+                          constraints: const BoxConstraints(
+                            minWidth: 20,
+                            minHeight: 20,
+                          ),
+                          child: Text(
+                            '$badgeCount',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Text(
+                            title,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          if (badgeCount > 0) ...[
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: Colors.red,
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: const Text(
+                                'رسائل جديدة',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
                       ),
                       Text(
                         subtitle,

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:green_way_new/features/privacy/privacy_policy_screen.dart';
 
 class AboutScreen extends StatelessWidget {
   const AboutScreen({super.key});
@@ -74,6 +75,42 @@ class AboutScreen extends StatelessWidget {
             _buildFeatureItem(Icons.person, 'للمواطنين', 'أنشئ طلبات جمع النفايات واكسب المال'),
             _buildFeatureItem(Icons.local_shipping, 'للجامعين', 'اقبل الطلبات واجمع النفايات'),
             _buildFeatureItem(Icons.factory, 'للمصانع', 'اشترِ المواد المعاد تدويرها'),
+
+            const SizedBox(height: 24),
+
+            // زر سياسة الخصوصية
+            InkWell(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const PrivacyPolicyScreen()),
+                );
+              },
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.grey.shade200),
+                ),
+                child: const Row(
+                  children: [
+                    Icon(Icons.privacy_tip, color: Color(0xFF4CAF50)),
+                    SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'سياسة الخصوصية',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                    Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
+                  ],
+                ),
+              ),
+            ),
 
             const SizedBox(height: 32),
             const Text('© 2024 Green Way', style: TextStyle(color: Colors.grey)),

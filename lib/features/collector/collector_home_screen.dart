@@ -47,6 +47,7 @@ class _CollectorHomeScreenState extends ConsumerState<CollectorHomeScreen> {
   Widget build(BuildContext context) {
     final authService = ref.read(authServiceProvider);
     final userName = authService.currentUser?.displayName ?? 'جامع';
+    final collectorId = authService.currentUser?.uid ?? '';
 
     if (_isLoading) {
       return const Scaffold(
@@ -156,14 +157,60 @@ class _CollectorHomeScreenState extends ConsumerState<CollectorHomeScreen> {
                     ),
                   ),
                 ),
-                bottom: const TabBar(
+                bottom: TabBar(
                   indicatorColor: Colors.white,
                   indicatorWeight: 3,
                   labelColor: Colors.white,
                   unselectedLabelColor: Colors.white70,
                   tabs: [
-                    Tab(text: 'طلبات متاحة', icon: Icon(Icons.list_alt)),
-                    Tab(text: 'طلباتي', icon: Icon(Icons.assignment_turned_in)),
+                    const Tab(text: 'طلبات متاحة', icon: Icon(Icons.list_alt)),
+                    // تبويب طلباتي مع Badge
+                    StreamBuilder<QuerySnapshot>(
+                      stream: FirebaseFirestore.instance
+                          .collection('requests')
+                          .where('collectorId', isEqualTo: collectorId)
+                          .where('status', isEqualTo: 'accepted')
+                          .snapshots(),
+                      builder: (context, snapshot) {
+                        int unreadCount = 0;
+                        if (snapshot.hasData) {
+                          for (var doc in snapshot.data!.docs) {
+                            final data = doc.data() as Map<String, dynamic>;
+                            if (data['hasNewMessageForCollector'] == true) {
+                              unreadCount++;
+                            }
+                          }
+                        }
+                        return Tab(
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.assignment_turned_in),
+                              const SizedBox(width: 4),
+                              const Text('طلباتي'),
+                              if (unreadCount > 0) ...[
+                                const SizedBox(width: 6),
+                                Container(
+                                  padding: const EdgeInsets.all(6),
+                                  decoration: const BoxDecoration(
+                                    color: Colors.red,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: Text(
+                                    '$unreadCount',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        );
+                      },
+                    ),
                   ],
                 ),
               ),
@@ -172,7 +219,7 @@ class _CollectorHomeScreenState extends ConsumerState<CollectorHomeScreen> {
           body: TabBarView(
             children: [
               _AvailableRequestsTab(wilaya: userWilaya ?? ''),
-              _MyAcceptedRequestsTab(collectorId: authService.currentUser?.uid ?? ''),
+              _MyAcceptedRequestsTab(collectorId: collectorId),
             ],
           ),
         ),
@@ -466,6 +513,7 @@ class _MyAcceptedRequestsTab extends StatelessWidget {
 
   Widget _buildAcceptedCard(BuildContext context, String docId, Map<String, dynamic> request) {
     final wasteType = wasteTypes[request['wasteType']] ?? wasteTypes['plastic']!;
+    final hasNewMessage = request['hasNewMessageForCollector'] == true;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -574,27 +622,56 @@ class _MyAcceptedRequestsTab extends StatelessWidget {
             ),
             child: Row(
               children: [
+                // زر المحادثة مع Badge
                 Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => ChatScreen(
-                            requestId: docId,
-                            otherUserName: request['userName'] ?? 'المواطن',
+                  child: Stack(
+                    children: [
+                      SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton.icon(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => ChatScreen(
+                                  requestId: docId,
+                                  otherUserName: request['userName'] ?? 'المواطن',
+                                ),
+                              ),
+                            );
+                          },
+                          icon: const Icon(Icons.chat),
+                          label: const Text('محادثة'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: const Color(0xFF4CAF50),
+                            side: const BorderSide(color: Color(0xFF4CAF50)),
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           ),
                         ),
-                      );
-                    },
-                    icon: const Icon(Icons.chat),
-                    label: const Text('محادثة'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: const Color(0xFF4CAF50),
-                      side: const BorderSide(color: Color(0xFF4CAF50)),
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
+                      ),
+                      // النقطة الحمراء
+                      if (hasNewMessage)
+                        Positioned(
+                          right: 5,
+                          top: 0,
+                          child: Container(
+                            padding: const EdgeInsets.all(6),
+                            decoration: const BoxDecoration(
+                              color: Colors.red,
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Text(
+                              '!',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
                 ),
                 const SizedBox(width: 12),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:green_way_new/notification_service.dart';
 
 class ChatScreen extends StatefulWidget {
   final String requestId;
@@ -21,6 +22,36 @@ class _ChatScreenState extends State<ChatScreen> {
   final _scrollController = ScrollController();
   final currentUser = FirebaseAuth.instance.currentUser;
 
+  @override
+  void initState() {
+    super.initState();
+    _markMessagesAsRead();
+  }
+
+  Future<void> _markMessagesAsRead() async {
+    try {
+      final requestDoc = await FirebaseFirestore.instance
+          .collection('requests')
+          .doc(widget.requestId)
+          .get();
+
+      final requestData = requestDoc.data();
+      if (requestData != null) {
+        final isCollector = currentUser?.uid == requestData['collectorId'];
+
+        // إزالة علامة الرسائل الجديدة
+        await FirebaseFirestore.instance
+            .collection('requests')
+            .doc(widget.requestId)
+            .update({
+          if (isCollector) 'hasNewMessageForCollector': false,
+          if (!isCollector) 'hasNewMessageForCitizen': false,
+        });
+      }
+    } catch (e) {
+      print('Error marking messages as read: $e');
+    }
+  }
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -282,6 +313,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
     _messageController.clear();
 
+    // إضافة الرسالة
     await FirebaseFirestore.instance
         .collection('chats')
         .doc(widget.requestId)
@@ -292,6 +324,35 @@ class _ChatScreenState extends State<ChatScreen> {
       'senderName': currentUser?.displayName ?? 'مستخدم',
       'createdAt': FieldValue.serverTimestamp(),
     });
+
+    // تحديث حالة الرسائل الجديدة في الطلب
+    try {
+      final requestDoc = await FirebaseFirestore.instance
+          .collection('requests')
+          .doc(widget.requestId)
+          .get();
+
+      final requestData = requestDoc.data();
+      if (requestData != null) {
+        final isCollector = currentUser?.uid == requestData['collectorId'];
+
+        await FirebaseFirestore.instance
+            .collection('requests')
+            .doc(widget.requestId)
+            .update({
+          if (isCollector) 'hasNewMessageForCitizen': true,
+          if (!isCollector) 'hasNewMessageForCollector': true,
+        });
+      }
+    } catch (e) {
+      print('Error updating message status: $e');
+    }
+
+    // إرسال إشعار
+    await NotificationService.showNotification(
+      title: 'رسالة جديدة 💬',
+      body: '${currentUser?.displayName ?? "مستخدم"}: $text',
+    );
   }
 
   @override
