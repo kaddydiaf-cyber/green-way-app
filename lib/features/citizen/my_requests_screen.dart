@@ -93,6 +93,7 @@ class MyRequestsScreen extends ConsumerWidget {
     final status = request['status'] ?? 'pending';
     final showChat = status == 'accepted' || status == 'completed';
     final showRating = status == 'completed' && request['isRated'] != true;
+    final hasNewMessage = request['hasNewMessageForCitizen'] == true;
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
@@ -170,27 +171,55 @@ class MyRequestsScreen extends ConsumerWidget {
               const SizedBox(height: 12),
               Row(
                 children: [
-                  // زر الدردشة
+                  // زر الدردشة مع النقطة الحمراء
                   if (showChat)
                     Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => ChatScreen(
-                                requestId: docId,
-                                otherUserName: 'الجامع',
+                      child: Stack(
+                        children: [
+                          SizedBox(
+                            width: double.infinity,
+                            child: OutlinedButton.icon(
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => ChatScreen(
+                                      requestId: docId,
+                                      otherUserName: request['collectorName'] ?? 'الجامع',
+                                    ),
+                                  ),
+                                );
+                              },
+                              icon: const Icon(Icons.chat, size: 18),
+                              label: const Text('محادثة'),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: const Color(0xFF4CAF50),
+                                side: const BorderSide(color: Color(0xFF4CAF50)),
                               ),
                             ),
-                          );
-                        },
-                        icon: const Icon(Icons.chat, size: 18),
-                        label: const Text('محادثة'),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: const Color(0xFF4CAF50),
-                          side: const BorderSide(color: Color(0xFF4CAF50)),
-                        ),
+                          ),
+                          // النقطة الحمراء
+                          if (hasNewMessage)
+                            Positioned(
+                              right: 5,
+                              top: 0,
+                              child: Container(
+                                padding: const EdgeInsets.all(6),
+                                decoration: const BoxDecoration(
+                                  color: Colors.red,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Text(
+                                  '!',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
                       ),
                     ),
 
@@ -206,7 +235,7 @@ class MyRequestsScreen extends ConsumerWidget {
                             builder: (_) => RatingDialog(
                               requestId: docId,
                               ratedUserId: request['collectorId'] ?? '',
-                              ratedUserName: 'الجامع',
+                              ratedUserName: request['collectorName'] ?? 'الجامع',
                             ),
                           );
                         },
