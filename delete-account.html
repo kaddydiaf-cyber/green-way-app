@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Green Way - طلب حذف الحساب | Delete Account Request</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.8;
+            color: #333;
+            background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        
+        .logo {
+            font-size: 3em;
+            margin-bottom: 10px;
+        }
+        
+        h1 {
+            color: #2e7d32;
+            font-size: 1.8em;
+            margin-bottom: 10px;
+        }
+        
+        .lang-switcher {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin: 20px 0;
+        }
+        
+        .lang-btn {
+            padding: 8px 20px;
+            border: 2px solid #2e7d32;
+            background: white;
+            color: #2e7d32;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: all 0.3s;
+        }
+        
+        .lang-btn:hover, .lang-btn.active {
+            background: #2e7d32;
+            color: white;
+        }
+        
+        .content {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        
+        .section {
+            display: none;
+        }
+        
+        .section.active {
+            display: block;
+        }
+        
+        .warning-box {
+            background: #fff3e0;
+            border: 1px solid #ff9800;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .warning-box h3 {
+            color: #e65100;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        input, textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1em;
+            transition: border-color 0.3s;
+        }
+        
+        input:focus, textarea:focus {
+            outline: none;
+            border-color: #4CAF50;
+        }
+        
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+        
+        .checkbox-group {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .checkbox-group input {
+            width: auto;
+            margin-top: 4px;
+        }
+        
+        .submit-btn {
+            width: 100%;
+            padding: 15px;
+            background: #d32f2f;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1em;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        
+        .submit-btn:hover {
+            background: #b71c1c;
+        }
+        
+        .submit-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        
+        .info-box {
+            background: #e3f2fd;
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 20px;
+        }
+        
+        .info-box h3 {
+            color: #1565c0;
+            margin-bottom: 10px;
+        }
+        
+        .footer {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+            margin-top: 20px;
+        }
+        
+        .success-message {
+            display: none;
+            background: #e8f5e9;
+            border: 1px solid #4CAF50;
+            border-radius: 10px;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .success-message.show {
+            display: block;
+        }
+        
+        .success-message h2 {
+            color: #2e7d32;
+            margin-bottom: 15px;
+        }
+        
+        .form-container.hide {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">♻️🌿</div>
+            <h1>Green Way - الطريق الأخضر</h1>
+            <p>طلب حذف الحساب | Delete Account Request</p>
+            
+            <div class="lang-switcher">
+                <button class="lang-btn active" onclick="showLang('ar')">العربية</button>
+                <button class="lang-btn" onclick="showLang('fr')">Français</button>
+                <button class="lang-btn" onclick="showLang('en')">English</button>
+            </div>
+        </div>
+        
+        <div class="content">
+            <!-- Arabic Section -->
+            <div id="ar" class="section active" dir="rtl">
+                <div class="form-container">
+                    <div class="warning-box">
+                        <h3>⚠️ تحذير مهم</h3>
+                        <p>حذف حسابك سيؤدي إلى:</p>
+                        <ul style="margin-top: 10px; margin-right: 20px;">
+                            <li>حذف جميع بياناتك الشخصية</li>
+                            <li>حذف سجل المعاملات والنقاط</li>
+                            <li>حذف جميع المحادثات</li>
+                            <li>لا يمكن التراجع عن هذا الإجراء</li>
+                        </ul>
+                    </div>
+                    
+                    <form id="deleteFormAr" onsubmit="submitForm(event, 'ar')">
+                        <div class="form-group">
+                            <label>البريد الإلكتروني المسجل *</label>
+                            <input type="email" required placeholder="أدخل بريدك الإلكتروني">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>الاسم الكامل *</label>
+                            <input type="text" required placeholder="أدخل اسمك الكامل">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>سبب حذف الحساب (اختياري)</label>
+                            <textarea placeholder="أخبرنا لماذا تريد حذف حسابك..."></textarea>
+                        </div>
+                        
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="confirmAr" required>
+                            <label for="confirmAr" style="font-weight: normal;">
+                                أفهم أن حذف حسابي نهائي ولا يمكن التراجع عنه، وأن جميع بياناتي ستُحذف بشكل دائم.
+                            </label>
+                        </div>
+                        
+                        <button type="submit" class="submit-btn">🗑️ طلب حذف الحساب</button>
+                    </form>
+                    
+                    <div class="info-box">
+                        <h3>ℹ️ معلومات مهمة</h3>
+                        <p>سيتم معالجة طلبك خلال <strong>7-14 يوم عمل</strong>.</p>
+                        <p>ستتلقى رسالة تأكيد على بريدك الإلكتروني.</p>
+                        <p>للاستفسارات: <a href="mailto:kaddy.diaf@gmail.com">kaddy.diaf@gmail.com</a></p>
+                    </div>
+                </div>
+                
+                <div class="success-message" id="successAr">
+                    <h2>✅ تم إرسال طلبك بنجاح</h2>
+                    <p>سنقوم بمراجعة طلبك وحذف حسابك خلال 7-14 يوم عمل.</p>
+                    <p>ستتلقى رسالة تأكيد على بريدك الإلكتروني.</p>
+                </div>
+            </div>
+            
+            <!-- French Section -->
+            <div id="fr" class="section" dir="ltr">
+                <div class="form-container">
+                    <div class="warning-box">
+                        <h3>⚠️ Avertissement Important</h3>
+                        <p>La suppression de votre compte entraînera:</p>
+                        <ul style="margin-top: 10px; margin-left: 20px;">
+                            <li>Suppression de toutes vos données personnelles</li>
+                            <li>Suppression de l'historique des transactions et des points</li>
+                            <li>Suppression de toutes les conversations</li>
+                            <li>Cette action est irréversible</li>
+                        </ul>
+                    </div>
+                    
+                    <form id="deleteFormFr" onsubmit="submitForm(event, 'fr')">
+                        <div class="form-group">
+                            <label>Email enregistré *</label>
+                            <input type="email" required placeholder="Entrez votre email">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Nom complet *</label>
+                            <input type="text" required placeholder="Entrez votre nom complet">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Raison de la suppression (optionnel)</label>
+                            <textarea placeholder="Dites-nous pourquoi vous souhaitez supprimer votre compte..."></textarea>
+                        </div>
+                        
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="confirmFr" required>
+                            <label for="confirmFr" style="font-weight: normal;">
+                                Je comprends que la suppression de mon compte est définitive et irréversible, et que toutes mes données seront supprimées de façon permanente.
+                            </label>
+                        </div>
+                        
+                        <button type="submit" class="submit-btn">🗑️ Demander la suppression du compte</button>
+                    </form>
+                    
+                    <div class="info-box">
+                        <h3>ℹ️ Informations Importantes</h3>
+                        <p>Votre demande sera traitée dans un délai de <strong>7-14 jours ouvrables</strong>.</p>
+                        <p>Vous recevrez un email de confirmation.</p>
+                        <p>Contact: <a href="mailto:kaddy.diaf@gmail.com">kaddy.diaf@gmail.com</a></p>
+                    </div>
+                </div>
+                
+                <div class="success-message" id="successFr">
+                    <h2>✅ Demande envoyée avec succès</h2>
+                    <p>Nous examinerons votre demande et supprimerons votre compte dans 7-14 jours ouvrables.</p>
+                    <p>Vous recevrez un email de confirmation.</p>
+                </div>
+            </div>
+            
+            <!-- English Section -->
+            <div id="en" class="section" dir="ltr">
+                <div class="form-container">
+                    <div class="warning-box">
+                        <h3>⚠️ Important Warning</h3>
+                        <p>Deleting your account will result in:</p>
+                        <ul style="margin-top: 10px; margin-left: 20px;">
+                            <li>Deletion of all your personal data</li>
+                            <li>Deletion of transaction history and points</li>
+                            <li>Deletion of all conversations</li>
+                            <li>This action cannot be undone</li>
+                        </ul>
+                    </div>
+                    
+                    <form id="deleteFormEn" onsubmit="submitForm(event, 'en')">
+                        <div class="form-group">
+                            <label>Registered Email *</label>
+                            <input type="email" required placeholder="Enter your email">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Full Name *</label>
+                            <input type="text" required placeholder="Enter your full name">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Reason for deletion (optional)</label>
+                            <textarea placeholder="Tell us why you want to delete your account..."></textarea>
+                        </div>
+                        
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="confirmEn" required>
+                            <label for="confirmEn" style="font-weight: normal;">
+                                I understand that deleting my account is permanent and irreversible, and that all my data will be permanently deleted.
+                            </label>
+                        </div>
+                        
+                        <button type="submit" class="submit-btn">🗑️ Request Account Deletion</button>
+                    </form>
+                    
+                    <div class="info-box">
+                        <h3>ℹ️ Important Information</h3>
+                        <p>Your request will be processed within <strong>7-14 business days</strong>.</p>
+                        <p>You will receive a confirmation email.</p>
+                        <p>Contact: <a href="mailto:kaddy.diaf@gmail.com">kaddy.diaf@gmail.com</a></p>
+                    </div>
+                </div>
+                
+                <div class="success-message" id="successEn">
+                    <h2>✅ Request Submitted Successfully</h2>
+                    <p>We will review your request and delete your account within 7-14 business days.</p>
+                    <p>You will receive a confirmation email.</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>© 2026 Green Way - الطريق الأخضر. All rights reserved.</p>
+        </div>
+    </div>
+    
+    <script>
+        function showLang(lang) {
+            document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+            document.getElementById(lang).classList.add('active');
+            document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
+            event.target.classList.add('active');
+            if (lang === 'ar') {
+                document.documentElement.dir = 'rtl';
+                document.documentElement.lang = 'ar';
+            } else {
+                document.documentElement.dir = 'ltr';
+                document.documentElement.lang = lang;
+            }
+        }
+        
+        function submitForm(event, lang) {
+            event.preventDefault();
+            
+            // Hide form, show success message
+            const section = document.getElementById(lang);
+            section.querySelector('.form-container').classList.add('hide');
+            section.querySelector('.success-message').classList.add('show');
+            
+            // In a real implementation, you would send this data to your server
+            // For now, this just shows the success message
+        }
+    </script>
+</body>
+</html>
