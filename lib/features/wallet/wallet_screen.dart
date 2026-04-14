@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:green_way_new/services/wallet_service.dart';
 import 'package:green_way_new/auth_service.dart';
+import 'package:green_way_new/l10n/app_translations.dart';
+import 'package:green_way_new/app.dart';
+import 'package:green_way_new/theme/app_colors.dart';
 
 class WalletScreen extends ConsumerWidget {
   const WalletScreen({super.key});
@@ -10,14 +14,12 @@ class WalletScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final authService = ref.read(authServiceProvider);
     final userId = authService.currentUser?.uid;
+    final t = AppTranslations.get(ref.watch(languageProvider).languageCode);
 
     return Scaffold(
       backgroundColor: Colors.grey.shade100,
       body: StreamBuilder<DocumentSnapshot>(
-        stream: FirebaseFirestore.instance
-            .collection('users')
-            .doc(userId)
-            .snapshots(),
+        stream: WalletService.getUserProfileStream(userId!),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
@@ -33,13 +35,13 @@ class WalletScreen extends ConsumerWidget {
                 expandedHeight: 280,
                 floating: false,
                 pinned: true,
-                backgroundColor: const Color(0xFF4CAF50),
+                backgroundColor: AppColors.primary,
                 foregroundColor: Colors.white,
                 flexibleSpace: FlexibleSpaceBar(
                   background: Container(
                     decoration: const BoxDecoration(
                       gradient: LinearGradient(
-                        colors: [Color(0xFF4CAF50), Color(0xFF2E7D32)],
+                        colors: [AppColors.primary, AppColors.primaryDark],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                       ),
@@ -62,13 +64,13 @@ class WalletScreen extends ConsumerWidget {
                             ),
                           ),
                           const SizedBox(height: 16),
-                          const Text(
-                            'رصيدك الحالي',
-                            style: TextStyle(color: Colors.white70, fontSize: 16),
+                          Text(
+                            t['your_current_balance']!,
+                            style: const TextStyle(color: Colors.white70, fontSize: 16),
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            '$balance د.ج',
+                            '$balance ${t['currency']!}',
                             style: const TextStyle(
                               color: Colors.white,
                               fontSize: 42,
@@ -82,15 +84,15 @@ class WalletScreen extends ConsumerWidget {
                               _buildActionButton(
                                 context,
                                 icon: Icons.add,
-                                label: 'إيداع',
-                                onTap: () => _showDepositDialog(context, userId!),
+                                label: t['deposit']!,
+                                onTap: () => _showDepositDialog(context, userId!, t),
                               ),
                               const SizedBox(width: 20),
                               _buildActionButton(
                                 context,
                                 icon: Icons.remove,
-                                label: 'سحب',
-                                onTap: () => _showWithdrawDialog(context, userId!, balance),
+                                label: t['withdraw']!,
+                                onTap: () => _showWithdrawDialog(context, userId!, balance, t),
                               ),
                             ],
                           ),
@@ -110,15 +112,15 @@ class WalletScreen extends ConsumerWidget {
                       Container(
                         padding: const EdgeInsets.all(10),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF4CAF50).withAlpha(30),
+                          color: AppColors.primary.withAlpha(30),
                           borderRadius: BorderRadius.circular(10),
                         ),
-                        child: const Icon(Icons.history, color: Color(0xFF4CAF50)),
+                        child: const Icon(Icons.history, color: AppColors.primary),
                       ),
                       const SizedBox(width: 12),
-                      const Text(
-                        'سجل المعاملات',
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      Text(
+                        t['transaction_history']!,
+                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                       ),
                     ],
                   ),
@@ -127,16 +129,11 @@ class WalletScreen extends ConsumerWidget {
 
               // قائمة المعاملات
               StreamBuilder<QuerySnapshot>(
-                stream: FirebaseFirestore.instance
-                    .collection('transactions')
-                    .where('userId', isEqualTo: userId)
-                    .orderBy('createdAt', descending: true)
-                    .limit(20)
-                    .snapshots(),
+                stream: WalletService.getTransactionHistory(userId!),
                 builder: (context, snapshot) {
                   if (snapshot.hasError) {
                     return SliverToBoxAdapter(
-                      child: _buildEmptyState(),
+                      child: _buildEmptyState(t),
                     );
                   }
 
@@ -144,7 +141,7 @@ class WalletScreen extends ConsumerWidget {
 
                   if (transactions.isEmpty) {
                     return SliverToBoxAdapter(
-                      child: _buildEmptyState(),
+                      child: _buildEmptyState(t),
                     );
                   }
 
@@ -152,7 +149,7 @@ class WalletScreen extends ConsumerWidget {
                     delegate: SliverChildBuilderDelegate(
                           (context, index) {
                         final transaction = transactions[index].data() as Map<String, dynamic>;
-                        return _buildTransactionItem(transaction);
+                        return _buildTransactionItem(transaction, t);
                       },
                       childCount: transactions.length,
                     ),
@@ -193,12 +190,12 @@ class WalletScreen extends ConsumerWidget {
         ),
         child: Row(
           children: [
-            Icon(icon, color: const Color(0xFF4CAF50)),
+            Icon(icon, color: AppColors.primary),
             const SizedBox(width: 8),
             Text(
               label,
               style: const TextStyle(
-                color: Color(0xFF4CAF50),
+                color: AppColors.primary,
                 fontWeight: FontWeight.bold,
                 fontSize: 16,
               ),
@@ -209,7 +206,7 @@ class WalletScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildEmptyState() {
+  Widget _buildEmptyState(Map<String, String> t) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20),
       padding: const EdgeInsets.all(40),
@@ -221,16 +218,16 @@ class WalletScreen extends ConsumerWidget {
         children: [
           Icon(Icons.receipt_long, size: 60, color: Colors.grey.shade300),
           const SizedBox(height: 16),
-          const Text(
-            'لا توجد معاملات بعد',
-            style: TextStyle(color: Colors.grey, fontSize: 16),
+          Text(
+            t['no_transactions']!,
+            style: const TextStyle(color: Colors.grey, fontSize: 16),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildTransactionItem(Map<String, dynamic> transaction) {
+  Widget _buildTransactionItem(Map<String, dynamic> transaction, Map<String, String> t) {
     final type = transaction['type'] ?? 'deposit';
     final amount = (transaction['amount'] ?? 0.0).toDouble();
     final isDeposit = type == 'deposit';
@@ -268,7 +265,7 @@ class WalletScreen extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  isDeposit ? 'إيداع' : 'سحب',
+                  isDeposit ? t['deposit']! : t['withdraw']!,
                   style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                 ),
                 Text(
@@ -279,7 +276,7 @@ class WalletScreen extends ConsumerWidget {
             ),
           ),
           Text(
-            '${isDeposit ? '+' : '-'}$amount د.ج',
+            '${isDeposit ? '+' : '-'}$amount ${t['currency']!}',
             style: TextStyle(
               color: isDeposit ? Colors.green : Colors.red,
               fontWeight: FontWeight.bold,
@@ -291,7 +288,7 @@ class WalletScreen extends ConsumerWidget {
     );
   }
 
-  void _showDepositDialog(BuildContext context, String userId) {
+  void _showDepositDialog(BuildContext context, String userId, Map<String, String> t) {
     final controller = TextEditingController();
 
     showDialog(
@@ -309,14 +306,14 @@ class WalletScreen extends ConsumerWidget {
               child: const Icon(Icons.add, color: Colors.green),
             ),
             const SizedBox(width: 12),
-            const Text('إيداع مبلغ'),
+            Text(t['deposit_amount']!),
           ],
         ),
         content: TextField(
           controller: controller,
           keyboardType: TextInputType.number,
           decoration: InputDecoration(
-            labelText: 'المبلغ (د.ج)',
+            labelText: t['amount_label']!,
             prefixIcon: const Icon(Icons.attach_money),
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
           ),
@@ -324,28 +321,28 @@ class WalletScreen extends ConsumerWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('إلغاء'),
+            child: Text(t['cancel']!),
           ),
           ElevatedButton(
             onPressed: () async {
               final amount = double.tryParse(controller.text) ?? 0;
               if (amount > 0) {
-                await _deposit(userId, amount);
+                await _deposit(userId, amount, t);
                 Navigator.pop(context);
               }
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF4CAF50),
+              backgroundColor: AppColors.primary,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
-            child: const Text('إيداع', style: TextStyle(color: Colors.white)),
+            child: Text(t['deposit']!, style: const TextStyle(color: Colors.white)),
           ),
         ],
       ),
     );
   }
 
-  void _showWithdrawDialog(BuildContext context, String userId, double currentBalance) {
+  void _showWithdrawDialog(BuildContext context, String userId, double currentBalance, Map<String, String> t) {
     final controller = TextEditingController();
 
     showDialog(
@@ -363,7 +360,7 @@ class WalletScreen extends ConsumerWidget {
               child: const Icon(Icons.remove, color: Colors.red),
             ),
             const SizedBox(width: 12),
-            const Text('سحب مبلغ'),
+            Text(t['withdraw_amount']!),
           ],
         ),
         content: Column(
@@ -373,14 +370,14 @@ class WalletScreen extends ConsumerWidget {
               controller: controller,
               keyboardType: TextInputType.number,
               decoration: InputDecoration(
-                labelText: 'المبلغ (د.ج)',
+                labelText: t['amount_label']!,
                 prefixIcon: const Icon(Icons.attach_money),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
               ),
             ),
             const SizedBox(height: 8),
             Text(
-              'الرصيد المتاح: $currentBalance د.ج',
+              '${t['available_balance']!} $currentBalance ${t['currency']!}',
               style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
             ),
           ],
@@ -388,13 +385,13 @@ class WalletScreen extends ConsumerWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('إلغاء'),
+            child: Text(t['cancel']!),
           ),
           ElevatedButton(
             onPressed: () async {
               final amount = double.tryParse(controller.text) ?? 0;
               if (amount > 0 && amount <= currentBalance) {
-                await _withdraw(userId, amount);
+                await _withdraw(userId, amount, t);
                 Navigator.pop(context);
               }
             },
@@ -402,50 +399,26 @@ class WalletScreen extends ConsumerWidget {
               backgroundColor: Colors.red,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
-            child: const Text('سحب', style: TextStyle(color: Colors.white)),
+            child: Text(t['withdraw']!, style: const TextStyle(color: Colors.white)),
           ),
         ],
       ),
     );
   }
 
-  Future<void> _deposit(String userId, double amount) async {
-    final batch = FirebaseFirestore.instance.batch();
-
-    final userRef = FirebaseFirestore.instance.collection('users').doc(userId);
-    batch.update(userRef, {
-      'walletBalance': FieldValue.increment(amount),
-    });
-
-    final transactionRef = FirebaseFirestore.instance.collection('transactions').doc();
-    batch.set(transactionRef, {
-      'userId': userId,
-      'type': 'deposit',
-      'amount': amount,
-      'description': 'إيداع مبلغ',
-      'createdAt': FieldValue.serverTimestamp(),
-    });
-
-    await batch.commit();
+  Future<void> _deposit(String userId, double amount, Map<String, String> t) async {
+    await WalletService.deposit(
+      userId: userId,
+      amount: amount,
+      description: t['deposit_description']!,
+    );
   }
 
-  Future<void> _withdraw(String userId, double amount) async {
-    final batch = FirebaseFirestore.instance.batch();
-
-    final userRef = FirebaseFirestore.instance.collection('users').doc(userId);
-    batch.update(userRef, {
-      'walletBalance': FieldValue.increment(-amount),
-    });
-
-    final transactionRef = FirebaseFirestore.instance.collection('transactions').doc();
-    batch.set(transactionRef, {
-      'userId': userId,
-      'type': 'withdraw',
-      'amount': amount,
-      'description': 'سحب مبلغ',
-      'createdAt': FieldValue.serverTimestamp(),
-    });
-
-    await batch.commit();
+  Future<void> _withdraw(String userId, double amount, Map<String, String> t) async {
+    await WalletService.withdraw(
+      userId: userId,
+      amount: amount,
+      description: t['withdrawal_description']!,
+    );
   }
 }

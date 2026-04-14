@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:green_way_new/app.dart';
+import 'package:green_way_new/services/user_service.dart';
 import 'package:green_way_new/features/auth/auth_screen.dart';
 import 'package:green_way_new/features/citizen/citizen_home_screen.dart';
 import 'package:green_way_new/features/collector/collector_home_screen.dart';
 import 'package:green_way_new/features/factory/factory_home_screen.dart';
+import 'package:green_way_new/theme/app_colors.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -29,12 +29,7 @@ class _SplashScreenState extends State<SplashScreen> {
     if (user == null) {
       _goTo(const AuthScreen());
     } else {
-      final doc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .get();
-
-      final role = doc.data()?['role'] ?? 'citizen';
+      final role = await UserService.getUserRole(user.uid) ?? 'citizen';
 
       switch (role) {
         case 'collector':
@@ -59,7 +54,7 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF4CAF50),
+      backgroundColor: AppColors.primary,
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -74,7 +69,7 @@ class _SplashScreenState extends State<SplashScreen> {
               child: const Icon(
                 Icons.recycling,
                 size: 80,
-                color: Color(0xFF4CAF50),
+                color: AppColors.primary,
               ),
             ),
             const SizedBox(height: 24),

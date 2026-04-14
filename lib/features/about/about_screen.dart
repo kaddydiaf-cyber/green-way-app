@@ -1,15 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:green_way_new/l10n/app_translations.dart';
+import 'package:green_way_new/app.dart';
 import 'package:green_way_new/features/privacy/privacy_policy_screen.dart';
+import 'package:green_way_new/theme/app_colors.dart';
 
-class AboutScreen extends StatelessWidget {
+class AboutScreen extends ConsumerWidget {
   const AboutScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final t = AppTranslations.get(ref.watch(languageProvider).languageCode);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('حول التطبيق'),
-        backgroundColor: const Color(0xFF4CAF50),
+        title: Text(t['about_app']!),
+        backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
       ),
       body: SingleChildScrollView(
@@ -21,13 +26,13 @@ class AboutScreen extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: const Color(0xFF4CAF50).withAlpha(30),
+                color: AppColors.primary.withAlpha(30),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: const Icon(
                 Icons.recycling,
                 size: 80,
-                color: Color(0xFF4CAF50),
+                color: AppColors.primary,
               ),
             ),
             const SizedBox(height: 24),
@@ -37,15 +42,15 @@ class AboutScreen extends StatelessWidget {
               style: TextStyle(
                 fontSize: 28,
                 fontWeight: FontWeight.bold,
-                color: Color(0xFF4CAF50),
+                color: AppColors.primary,
               ),
             ),
-            const Text(
-              'الطريق الأخضر',
-              style: TextStyle(fontSize: 22, color: Colors.grey),
+            Text(
+              t['app_subtitle']!,
+              style: const TextStyle(fontSize: 22, color: Colors.grey),
             ),
             const SizedBox(height: 8),
-            const Text('الإصدار 1.0.0', style: TextStyle(color: Colors.grey)),
+            Text(t['version']!, style: const TextStyle(color: Colors.grey)),
             const SizedBox(height: 32),
 
             Container(
@@ -54,27 +59,27 @@ class AboutScreen extends StatelessWidget {
                 color: Colors.grey.shade100,
                 borderRadius: BorderRadius.circular(16),
               ),
-              child: const Column(
+              child: Column(
                 children: [
                   Text(
-                    'حوّل نفاياتك إلى أموال وساهم في الحفاظ على البيئة',
+                    t['about_tagline']!,
                     textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
+                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
                   ),
-                  SizedBox(height: 16),
+                  const SizedBox(height: 16),
                   Text(
-                    'تطبيق Green Way يربط بين المواطنين وجامعي النفايات ومصانع إعادة التدوير لخلق بيئة نظيفة ومستدامة.',
+                    t['about_description']!,
                     textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 14, color: Colors.grey, height: 1.6),
+                    style: const TextStyle(fontSize: 14, color: Colors.grey, height: 1.6),
                   ),
                 ],
               ),
             ),
             const SizedBox(height: 24),
 
-            _buildFeatureItem(Icons.person, 'للمواطنين', 'أنشئ طلبات جمع النفايات واكسب المال'),
-            _buildFeatureItem(Icons.local_shipping, 'للجامعين', 'اقبل الطلبات واجمع النفايات'),
-            _buildFeatureItem(Icons.factory, 'للمصانع', 'اشترِ المواد المعاد تدويرها'),
+            _buildFeatureItem(Icons.person, t['for_citizens']!, t['create_requests_earn']!),
+            _buildFeatureItem(Icons.local_shipping, t['for_collectors']!, t['accept_requests_collect']!),
+            _buildFeatureItem(Icons.factory, t['for_factories']!, t['buy_recycled']!),
 
             const SizedBox(height: 24),
 
@@ -93,28 +98,28 @@ class AboutScreen extends StatelessWidget {
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: Colors.grey.shade200),
                 ),
-                child: const Row(
+                child: Row(
                   children: [
-                    Icon(Icons.privacy_tip, color: Color(0xFF4CAF50)),
-                    SizedBox(width: 12),
+                    const Icon(Icons.privacy_tip, color: AppColors.primary),
+                    const SizedBox(width: 12),
                     Expanded(
                       child: Text(
-                        'سياسة الخصوصية',
-                        style: TextStyle(
+                        t['privacy_policy']!,
+                        style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
                     ),
-                    Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
+                    const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
                   ],
                 ),
               ),
             ),
 
             const SizedBox(height: 32),
-            const Text('© 2024 Green Way', style: TextStyle(color: Colors.grey)),
-            const Text('جميع الحقوق محفوظة', style: TextStyle(color: Colors.grey, fontSize: 12)),
+            Text(t['copyright']!, style: const TextStyle(color: Colors.grey)),
+            Text(t['all_rights_reserved']!, style: const TextStyle(color: Colors.grey, fontSize: 12)),
           ],
         ),
       ),
@@ -135,10 +140,10 @@ class AboutScreen extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: const Color(0xFF4CAF50).withAlpha(30),
+              color: AppColors.primary.withAlpha(30),
               borderRadius: BorderRadius.circular(10),
             ),
-            child: Icon(icon, color: const Color(0xFF4CAF50)),
+            child: Icon(icon, color: AppColors.primary),
           ),
           const SizedBox(width: 16),
           Expanded(

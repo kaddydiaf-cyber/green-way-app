@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:green_way_new/theme/app_colors.dart';
 
 class PrivacyPolicyScreen extends StatelessWidget {
   const PrivacyPolicyScreen({super.key});
@@ -8,7 +9,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('سياسة الخصوصية'),
-        backgroundColor: const Color(0xFF4CAF50),
+        backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
       ),
       body: SingleChildScrollView(
@@ -20,7 +21,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
               child: Icon(
                 Icons.privacy_tip,
                 size: 60,
-                color: Color(0xFF4CAF50),
+                color: AppColors.primary,
               ),
             ),
             const SizedBox(height: 16),
@@ -111,18 +112,18 @@ class PrivacyPolicyScreen extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: const Color(0xFF4CAF50).withAlpha(20),
+                color: AppColors.primary.withAlpha(20),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: const Row(
                 children: [
-                  Icon(Icons.eco, color: Color(0xFF4CAF50)),
+                  Icon(Icons.eco, color: AppColors.primary),
                   SizedBox(width: 12),
                   Expanded(
                     child: Text(
                       'شكراً لاستخدامك Green Way ومساهمتك في الحفاظ على البيئة! 🌱',
                       style: TextStyle(
-                        color: Color(0xFF4CAF50),
+                        color: AppColors.primary,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -149,7 +150,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
             style: const TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
-              color: Color(0xFF4CAF50),
+              color: AppColors.primary,
             ),
           ),
           const SizedBox(height: 8),

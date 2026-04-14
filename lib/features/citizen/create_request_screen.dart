@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:green_way_new/auth_service.dart';
+import 'package:green_way_new/services/request_service.dart';
+import 'package:green_way_new/services/user_service.dart';
 import 'package:green_way_new/data/wilayas.dart';
+import 'package:green_way_new/app.dart';
+import 'package:green_way_new/l10n/app_translations.dart';
+import 'package:green_way_new/theme/app_colors.dart';
 
 class CreateRequestScreen extends ConsumerStatefulWidget {
   const CreateRequestScreen({super.key});
@@ -21,13 +25,15 @@ class _CreateRequestScreenState extends ConsumerState<CreateRequestScreen> {
   bool _isLoading = false;
   bool _isLoadingWilaya = true;
 
-  final wasteTypes = [
-    {'id': 'plastic', 'name': 'بلاستيك', 'icon': Icons.local_drink, 'color': Colors.blue},
-    {'id': 'paper', 'name': 'ورق وكرتون', 'icon': Icons.description, 'color': Colors.brown},
-    {'id': 'glass', 'name': 'زجاج', 'icon': Icons.wine_bar, 'color': Colors.green},
-    {'id': 'metal', 'name': 'معادن', 'icon': Icons.settings, 'color': Colors.grey},
-    {'id': 'electronics', 'name': 'إلكترونيات', 'icon': Icons.devices, 'color': Colors.purple},
-    {'id': 'organic', 'name': 'عضوية', 'icon': Icons.eco, 'color': Colors.lightGreen},
+  List<Map<String, dynamic>> _getWasteTypes(Map<String, String> t) => [
+    {'id': 'plastic', 'name': t['plastic']!, 'icon': Icons.recycling_rounded, 'color': AppColors.wastePlastic},
+    {'id': 'paper', 'name': t['paper_cardboard']!, 'icon': Icons.article_rounded, 'color': AppColors.wastePaper},
+    {'id': 'wood', 'name': t['wood']!, 'icon': Icons.park_rounded, 'color': AppColors.wasteWood},
+    {'id': 'glass', 'name': t['glass']!, 'icon': Icons.liquor_rounded, 'color': AppColors.wasteGlass},
+    {'id': 'metal', 'name': t['metal']!, 'icon': Icons.hardware_rounded, 'color': AppColors.wasteMetal},
+    {'id': 'electronics', 'name': t['electronics']!, 'icon': Icons.memory_rounded, 'color': AppColors.wasteElectronics},
+    {'id': 'organic', 'name': t['organic']!, 'icon': Icons.compost_rounded, 'color': AppColors.wasteOrganic},
+    {'id': 'other', 'name': t['other']!, 'icon': Icons.category_rounded, 'color': AppColors.wasteOther},
   ];
 
   @override
@@ -41,13 +47,10 @@ class _CreateRequestScreenState extends ConsumerState<CreateRequestScreen> {
     final user = authService.currentUser;
 
     if (user != null) {
-      final userDoc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .get();
+      final userDoc = await UserService.getUser(user.uid);
 
       setState(() {
-        userWilaya = userDoc.data()?['wilaya'] ?? '';
+        userWilaya = (userDoc.data() as Map<String, dynamic>?)?['wilaya'] ?? '';
         userWilayaName = Wilayas.getNameByCode(userWilaya ?? '');
         _isLoadingWilaya = false;
       });
@@ -56,11 +59,14 @@ class _CreateRequestScreenState extends ConsumerState<CreateRequestScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppTranslations.get(ref.watch(languageProvider).languageCode);
+    final wasteTypes = _getWasteTypes(t);
+
     return Scaffold(
       backgroundColor: Colors.grey.shade100,
       appBar: AppBar(
-        title: const Text('طلب جديد'),
-        backgroundColor: const Color(0xFF4CAF50),
+        title: Text(t['new_request']!),
+        backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
         elevation: 0,
       ),
@@ -68,12 +74,11 @@ class _CreateRequestScreenState extends ConsumerState<CreateRequestScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // الهيدر
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(20),
               decoration: const BoxDecoration(
-                color: Color(0xFF4CAF50),
+                color: AppColors.primary,
                 borderRadius: BorderRadius.only(
                   bottomLeft: Radius.circular(30),
                   bottomRight: Radius.circular(30),
@@ -83,16 +88,15 @@ class _CreateRequestScreenState extends ConsumerState<CreateRequestScreen> {
                 children: [
                   const Icon(Icons.add_circle, color: Colors.white, size: 50),
                   const SizedBox(height: 8),
-                  const Text(
-                    'أنشئ طلب جمع نفايات',
-                    style: TextStyle(
+                  Text(
+                    t['create_waste_request']!,
+                    style: const TextStyle(
                       color: Colors.white,
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                   const SizedBox(height: 8),
-                  // عرض الولاية
                   if (!_isLoadingWilaya)
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -106,7 +110,7 @@ class _CreateRequestScreenState extends ConsumerState<CreateRequestScreen> {
                           const Icon(Icons.location_city, color: Colors.white, size: 18),
                           const SizedBox(width: 8),
                           Text(
-                            'ولاية $userWilayaName',
+                            '${t['wilaya']!} $userWilayaName',
                             style: const TextStyle(
                               color: Colors.white,
                               fontWeight: FontWeight.bold,
@@ -124,10 +128,9 @@ class _CreateRequestScreenState extends ConsumerState<CreateRequestScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // اختيار نوع النفايات
-                  const Text(
-                    'اختر نوع النفايات',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  Text(
+                    t['choose_waste_type']!,
+                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 12),
 
@@ -135,10 +138,10 @@ class _CreateRequestScreenState extends ConsumerState<CreateRequestScreen> {
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
                     gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 3,
-                      crossAxisSpacing: 12,
-                      mainAxisSpacing: 12,
-                      childAspectRatio: 1,
+                      crossAxisCount: 4,
+                      crossAxisSpacing: 10,
+                      mainAxisSpacing: 10,
+                      childAspectRatio: 0.85,
                     ),
                     itemCount: wasteTypes.length,
                     itemBuilder: (context, index) {
@@ -191,30 +194,29 @@ class _CreateRequestScreenState extends ConsumerState<CreateRequestScreen> {
 
                   const SizedBox(height: 24),
 
-                  // حقول الإدخال
                   _buildInputCard(
                     child: Column(
                       children: [
                         _buildTextField(
                           controller: _quantityController,
-                          label: 'الكمية (كجم تقريباً)',
+                          label: t['quantity_kg']!,
                           icon: Icons.scale,
                           keyboardType: TextInputType.number,
                         ),
                         const SizedBox(height: 16),
                         _buildTextField(
                           controller: _addressController,
-                          label: 'العنوان التفصيلي',
+                          label: t['detailed_address']!,
                           icon: Icons.location_on,
-                          hint: 'مثال: حي السلام، شارع 20 أوت، رقم 15',
+                          hint: t['address_example']!,
                         ),
                         const SizedBox(height: 16),
                         _buildTextField(
                           controller: _descriptionController,
-                          label: 'وصف إضافي (اختياري)',
+                          label: t['additional_description']!,
                           icon: Icons.note,
                           maxLines: 3,
-                          hint: 'أضف أي ملاحظات للجامع...',
+                          hint: t['notes_for_collector']!,
                         ),
                       ],
                     ),
@@ -222,12 +224,11 @@ class _CreateRequestScreenState extends ConsumerState<CreateRequestScreen> {
 
                   const SizedBox(height: 24),
 
-                  // زر الإرسال
                   SizedBox(
                     width: double.infinity,
                     height: 56,
                     child: ElevatedButton.icon(
-                      onPressed: _isLoading ? null : _submitRequest,
+                      onPressed: _isLoading ? null : () => _submitRequest(t),
                       icon: _isLoading
                           ? const SizedBox(
                         width: 20,
@@ -236,11 +237,11 @@ class _CreateRequestScreenState extends ConsumerState<CreateRequestScreen> {
                       )
                           : const Icon(Icons.send),
                       label: Text(
-                        _isLoading ? 'جاري الإرسال...' : 'إرسال الطلب',
+                        _isLoading ? t['sending']! : t['submit_request']!,
                         style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                       ),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF4CAF50),
+                        backgroundColor: AppColors.primary,
                         foregroundColor: Colors.white,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16),
@@ -291,7 +292,7 @@ class _CreateRequestScreenState extends ConsumerState<CreateRequestScreen> {
       decoration: InputDecoration(
         labelText: label,
         hintText: hint,
-        prefixIcon: Icon(icon, color: const Color(0xFF4CAF50)),
+        prefixIcon: Icon(icon, color: AppColors.primary),
         filled: true,
         fillColor: Colors.grey.shade50,
         border: OutlineInputBorder(
@@ -304,30 +305,30 @@ class _CreateRequestScreenState extends ConsumerState<CreateRequestScreen> {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFF4CAF50), width: 2),
+          borderSide: const BorderSide(color: AppColors.primary, width: 2),
         ),
       ),
     );
   }
 
-  Future<void> _submitRequest() async {
+  Future<void> _submitRequest(Map<String, String> t) async {
     if (selectedWasteType == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('اختر نوع النفايات'), backgroundColor: Colors.red),
+        SnackBar(content: Text(t['select_waste_type']!), backgroundColor: Colors.red),
       );
       return;
     }
 
     if (_quantityController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('أدخل الكمية'), backgroundColor: Colors.red),
+        SnackBar(content: Text(t['enter_quantity']!), backgroundColor: Colors.red),
       );
       return;
     }
 
     if (_addressController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('أدخل العنوان'), backgroundColor: Colors.red),
+        SnackBar(content: Text(t['enter_address']!), backgroundColor: Colors.red),
       );
       return;
     }
@@ -338,25 +339,23 @@ class _CreateRequestScreenState extends ConsumerState<CreateRequestScreen> {
       final authService = ref.read(authServiceProvider);
       final user = authService.currentUser;
 
-      await FirebaseFirestore.instance.collection('requests').add({
-        'userId': user?.uid,
-        'userName': user?.displayName,
-        'wasteType': selectedWasteType,
-        'quantity': double.tryParse(_quantityController.text) ?? 0,
-        'address': _addressController.text,
-        'description': _descriptionController.text,
-        'wilaya': userWilaya,
-        'wilayaName': userWilayaName,
-        'status': 'pending',
-        'createdAt': FieldValue.serverTimestamp(),
-      }).timeout(const Duration(seconds: 10));
+      await RequestService.createRequest(
+        userId: user?.uid,
+        userName: user?.displayName,
+        wasteType: selectedWasteType,
+        quantity: double.tryParse(_quantityController.text) ?? 0,
+        address: _addressController.text,
+        description: _descriptionController.text,
+        wilaya: userWilaya,
+        wilayaName: userWilayaName,
+      );
 
       setState(() => _isLoading = false);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('تم إرسال الطلب بنجاح! سيتواصل معك جامع قريباً'),
+          SnackBar(
+            content: Text(t['request_sent_success']!),
             backgroundColor: Colors.green,
           ),
         );
@@ -366,7 +365,7 @@ class _CreateRequestScreenState extends ConsumerState<CreateRequestScreen> {
     } catch (e) {
       setState(() => _isLoading = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('خطأ: $e'), backgroundColor: Colors.red),
+        SnackBar(content: Text('${t['error']!}: $e'), backgroundColor: Colors.red),
       );
     }
   }

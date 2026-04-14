@@ -1,5 +1,8 @@
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:green_way_new/sound_service.dart';
 
 class NotificationService {
   static final FirebaseMessaging _messaging = FirebaseMessaging.instance;
@@ -21,36 +24,62 @@ class NotificationService {
 
     // استقبال الإشعارات عندما التطبيق مفتوح
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-      _showLocalNotification(message);
+      _showLocalNotification(
+        title: message.notification?.title ?? 'Green Way',
+        body: message.notification?.body ?? '',
+      );
     });
 
+    // بدء الاستماع للإشعارات من Firestore
+    _listenToNotifications();
+
     // الحصول على Token الجهاز
-    String? token = await _messaging.getToken();
-    print('FCM Token: $token');
+    try {
+      String? token = await _messaging.getToken();
+      print('FCM Token: $token');
+    } catch (e) {
+      print('FCM getToken failed: $e');
+    }
   }
 
-  static Future<void> _showLocalNotification(RemoteMessage message) async {
-    const androidDetails = AndroidNotificationDetails(
-      'green_way_channel',
-      'Green Way Notifications',
-      channelDescription: 'إشعارات تطبيق Green Way',
-      importance: Importance.high,
-      priority: Priority.high,
-      icon: '@mipmap/ic_launcher',
-    );
+  // الاستماع للإشعارات الجديدة من Firestore
+  static void _listenToNotifications() {
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null) return;
 
-    const notificationDetails = NotificationDetails(android: androidDetails);
+    FirebaseFirestore.instance
+        .collection('notifications')
+        .where('receiverUserId', isEqualTo: currentUser.uid)
+        .where('isRead', isEqualTo: false)
+        .snapshots()
+        .listen((snapshot) {
+      for (var change in snapshot.docChanges) {
+        if (change.type == DocumentChangeType.added) {
+          final data = change.doc.data();
+          if (data != null) {
+            // تشغيل صوت الإشعار
+            SoundService.playNotificationSound();
 
-    await _localNotifications.show(
-      message.hashCode,
-      message.notification?.title ?? 'Green Way',
-      message.notification?.body ?? '',
-      notificationDetails,
-    );
+            // عرض الإشعار
+            _showLocalNotification(
+              title: data['title'] ?? 'Green Way',
+              body: data['body'] ?? '',
+            );
+
+            // تحديد الإشعار كمقروء
+            change.doc.reference.update({'isRead': true});
+          }
+        }
+      }
+    });
   }
 
-  // إرسال إشعار محلي
-  static Future<void> showNotification({
+  // إعادة تشغيل المستمع عند تسجيل الدخول
+  static void startListening() {
+    _listenToNotifications();
+  }
+
+  static Future<void> _showLocalNotification({
     required String title,
     required String body,
   }) async {
@@ -73,8 +102,43 @@ class NotificationService {
     );
   }
 
+  // إرسال إشعار محلي (للجهاز الحالي فقط)
+  static Future<void> showNotification({
+    required String title,
+    required String body,
+  }) async {
+    await _showLocalNotification(title: title, body: body);
+  }
+
+  // إرسال إشعار لمستخدم معين عبر Firestore
+  static Future<void> sendNotificationToUser({
+    required String receiverUserId,
+    required String title,
+    required String body,
+    String? chatId,
+  }) async {
+    try {
+      // حفظ الإشعار في Firestore
+      await FirebaseFirestore.instance.collection('notifications').add({
+        'receiverUserId': receiverUserId,
+        'title': title,
+        'body': body,
+        'chatId': chatId,
+        'isRead': false,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+    } catch (e) {
+      print('Error sending notification: $e');
+    }
+  }
+
   // الحصول على Token الجهاز لحفظه في قاعدة البيانات
   static Future<String?> getToken() async {
-    return await _messaging.getToken();
+    try {
+      return await _messaging.getToken();
+    } catch (e) {
+      print('FCM getToken failed: $e');
+      return null;
+    }
   }
 }

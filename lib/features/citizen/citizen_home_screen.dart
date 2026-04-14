@@ -2,10 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:green_way_new/auth_service.dart';
+import 'package:green_way_new/services/request_service.dart';
 import 'package:green_way_new/features/citizen/create_request_screen.dart';
 import 'package:green_way_new/features/citizen/my_requests_screen.dart';
 import 'package:green_way_new/features/wallet/wallet_screen.dart';
 import 'package:green_way_new/features/profile/profile_screen.dart';
+import 'package:green_way_new/features/collection_point/collection_points_screen.dart';
+import 'package:green_way_new/app.dart';
+import 'package:green_way_new/l10n/app_translations.dart';
+import 'package:green_way_new/theme/app_colors.dart';
 
 class CitizenHomeScreen extends ConsumerWidget {
   const CitizenHomeScreen({super.key});
@@ -14,13 +19,14 @@ class CitizenHomeScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final authService = ref.read(authServiceProvider);
     final user = authService.currentUser;
-    final userName = user?.displayName ?? 'مستخدم';
+    final userName = user?.displayName ?? '';
+    final t = AppTranslations.get(ref.watch(languageProvider).languageCode);
 
     return Scaffold(
       backgroundColor: Colors.grey.shade100,
       appBar: AppBar(
-        title: const Text('Green Way'),
-        backgroundColor: const Color(0xFF4CAF50),
+        title: Text(t['app_name']!),
+        backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
         elevation: 0,
         actions: [
@@ -36,12 +42,11 @@ class CitizenHomeScreen extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // الهيدر
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(24),
               decoration: const BoxDecoration(
-                color: Color(0xFF4CAF50),
+                color: AppColors.primary,
                 borderRadius: BorderRadius.only(
                   bottomLeft: Radius.circular(30),
                   bottomRight: Radius.circular(30),
@@ -51,7 +56,7 @@ class CitizenHomeScreen extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'مرحباً $userName 👋',
+                    '${t['hello_user']!} $userName 👋',
                     style: const TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
@@ -59,22 +64,18 @@ class CitizenHomeScreen extends ConsumerWidget {
                     ),
                   ),
                   const SizedBox(height: 4),
-                  const Text(
-                    'حوّل نفاياتك إلى أموال',
-                    style: TextStyle(color: Colors.white70, fontSize: 14),
+                  Text(
+                    t['convert_waste_to_money']!,
+                    style: const TextStyle(color: Colors.white70, fontSize: 14),
                   ),
                 ],
               ),
             ),
 
-            // الإحصائيات
             Padding(
               padding: const EdgeInsets.all(16),
               child: StreamBuilder<QuerySnapshot>(
-                stream: FirebaseFirestore.instance
-                    .collection('requests')
-                    .where('userId', isEqualTo: user?.uid)
-                    .snapshots(),
+                stream: RequestService.getUserRequestsForCount(user!.uid),
                 builder: (context, snapshot) {
                   final requests = snapshot.data?.docs ?? [];
                   final pending = requests.where((d) => (d.data() as Map)['status'] == 'pending').length;
@@ -82,50 +83,42 @@ class CitizenHomeScreen extends ConsumerWidget {
 
                   return Row(
                     children: [
-                      _buildStatCard('طلبات قيد الانتظار', '$pending', Icons.hourglass_empty, Colors.orange),
+                      _buildStatCard(t['pending_requests']!, '$pending', Icons.hourglass_empty, Colors.orange),
                       const SizedBox(width: 12),
-                      _buildStatCard('طلبات مكتملة', '$completed', Icons.check_circle, Colors.green),
+                      _buildStatCard(t['completed_requests']!, '$completed', Icons.check_circle, Colors.green),
                     ],
                   );
                 },
               ),
             ),
 
-            // القائمة الرئيسية
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'الخدمات',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  Text(
+                    t['services']!,
+                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 16),
 
-                  // طلب جديد
                   _buildServiceCard(
                     context,
                     icon: Icons.add_circle,
-                    title: 'طلب جديد',
-                    subtitle: 'أنشئ طلب جمع نفايات',
-                    color: const Color(0xFF4CAF50),
+                    title: t['new_request']!,
+                    subtitle: t['create_waste_request']!,
+                    color: AppColors.primary,
                     onTap: () {
                       Navigator.push(context, MaterialPageRoute(builder: (_) => const CreateRequestScreen()));
                     },
                   ),
 
-                  // طلباتي مع Badge للرسائل
                   StreamBuilder<QuerySnapshot>(
-                    stream: FirebaseFirestore.instance
-                        .collection('requests')
-                        .where('userId', isEqualTo: user?.uid)
-                        .where('status', isEqualTo: 'accepted')
-                        .snapshots(),
+                    stream: RequestService.getUserAcceptedRequests(user!.uid),
                     builder: (context, snapshot) {
                       int unreadMessages = 0;
 
-                      // حساب الرسائل غير المقروءة
                       if (snapshot.hasData) {
                         for (var doc in snapshot.data!.docs) {
                           final data = doc.data() as Map<String, dynamic>;
@@ -137,10 +130,11 @@ class CitizenHomeScreen extends ConsumerWidget {
                       return _buildServiceCardWithBadge(
                         context,
                         icon: Icons.list_alt,
-                        title: 'طلباتي',
-                        subtitle: 'عرض جميع طلباتك',
+                        title: t['my_requests']!,
+                        subtitle: t['view_all_requests']!,
                         color: Colors.blue,
                         badgeCount: unreadMessages,
+                        badgeLabel: t['new_messages']!,
                         onTap: () {
                           Navigator.push(context, MaterialPageRoute(builder: (_) => const MyRequestsScreen()));
                         },
@@ -148,12 +142,22 @@ class CitizenHomeScreen extends ConsumerWidget {
                     },
                   ),
 
-                  // المحفظة
+                  _buildServiceCard(
+                    context,
+                    icon: Icons.location_on,
+                    title: t['collection_points']!,
+                    subtitle: t['find_collection_points']!,
+                    color: Colors.purple,
+                    onTap: () {
+                      Navigator.push(context, MaterialPageRoute(builder: (_) => const CollectionPointsScreen()));
+                    },
+                  ),
+
                   _buildServiceCard(
                     context,
                     icon: Icons.account_balance_wallet,
-                    title: 'محفظتي',
-                    subtitle: 'إدارة رصيدك',
+                    title: t['my_wallet']!,
+                    subtitle: t['manage_balance']!,
                     color: Colors.orange,
                     onTap: () {
                       Navigator.push(context, MaterialPageRoute(builder: (_) => const WalletScreen()));
@@ -277,7 +281,6 @@ class CitizenHomeScreen extends ConsumerWidget {
     );
   }
 
-  // بطاقة الخدمة مع Badge
   Widget _buildServiceCardWithBadge(
       BuildContext context, {
         required IconData icon,
@@ -285,6 +288,7 @@ class CitizenHomeScreen extends ConsumerWidget {
         required String subtitle,
         required Color color,
         required int badgeCount,
+        required String badgeLabel,
         required VoidCallback onTap,
       }) {
     return Container(
@@ -299,7 +303,6 @@ class CitizenHomeScreen extends ConsumerWidget {
             padding: const EdgeInsets.all(16),
             child: Row(
               children: [
-                // الأيقونة مع Badge
                 Stack(
                   children: [
                     Container(
@@ -310,7 +313,6 @@ class CitizenHomeScreen extends ConsumerWidget {
                       ),
                       child: Icon(icon, color: color, size: 28),
                     ),
-                    // النقطة الحمراء
                     if (badgeCount > 0)
                       Positioned(
                         right: 0,
@@ -360,9 +362,9 @@ class CitizenHomeScreen extends ConsumerWidget {
                                 color: Colors.red,
                                 borderRadius: BorderRadius.circular(10),
                               ),
-                              child: const Text(
-                                'رسائل جديدة',
-                                style: TextStyle(
+                              child: Text(
+                                badgeLabel,
+                                style: const TextStyle(
                                   color: Colors.white,
                                   fontSize: 10,
                                   fontWeight: FontWeight.bold,

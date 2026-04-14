@@ -1,18 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:green_way_new/services/request_service.dart';
 import 'package:green_way_new/auth_service.dart';
-import 'package:green_way_new/features/auth/auth_screen.dart';
 import 'package:green_way_new/features/wallet/wallet_screen.dart';
 import 'package:green_way_new/features/profile/profile_screen.dart';
+import 'package:green_way_new/l10n/app_translations.dart';
+import 'package:green_way_new/app.dart';
+import 'package:green_way_new/theme/app_colors.dart';
 
 class FactoryHomeScreen extends ConsumerWidget {
   const FactoryHomeScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final t = AppTranslations.get(ref.watch(languageProvider).languageCode);
     final authService = ref.read(authServiceProvider);
-    final userName = authService.currentUser?.displayName ?? 'مصنع';
+    final userName = authService.currentUser?.displayName ?? t['factory']!;
 
     return DefaultTabController(
       length: 2,
@@ -25,7 +29,7 @@ class FactoryHomeScreen extends ConsumerWidget {
                 expandedHeight: 200,
                 floating: false,
                 pinned: true,
-                backgroundColor: const Color(0xFF4CAF50),
+                backgroundColor: AppColors.primary,
                 foregroundColor: Colors.white,
                 actions: [
                   IconButton(
@@ -45,7 +49,7 @@ class FactoryHomeScreen extends ConsumerWidget {
                   background: Container(
                     decoration: const BoxDecoration(
                       gradient: LinearGradient(
-                        colors: [Color(0xFF4CAF50), Color(0xFF2E7D32)],
+                        colors: [AppColors.primary, AppColors.primaryDark],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                       ),
@@ -76,16 +80,16 @@ class FactoryHomeScreen extends ConsumerWidget {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      'مرحباً $userName 👋',
+                                      '${t['hello_user']!} $userName 👋',
                                       style: const TextStyle(
                                         fontSize: 22,
                                         fontWeight: FontWeight.bold,
                                         color: Colors.white,
                                       ),
                                     ),
-                                    const Text(
-                                      'اشترِ المواد المعاد تدويرها',
-                                      style: TextStyle(color: Colors.white70, fontSize: 14),
+                                    Text(
+                                      t['buy_recycled_materials']!,
+                                      style: const TextStyle(color: Colors.white70, fontSize: 14),
                                     ),
                                   ],
                                 ),
@@ -93,10 +97,7 @@ class FactoryHomeScreen extends ConsumerWidget {
                             ),
                             const Spacer(),
                             StreamBuilder<QuerySnapshot>(
-                              stream: FirebaseFirestore.instance
-                                  .collection('requests')
-                                  .where('status', isEqualTo: 'completed')
-                                  .snapshots(),
+                              stream: RequestService.getCompletedRequests(),
                               builder: (context, snapshot) {
                                 final availableCount = snapshot.data?.docs.length ?? 0;
                                 return Container(
@@ -111,7 +112,7 @@ class FactoryHomeScreen extends ConsumerWidget {
                                       const Icon(Icons.inventory, color: Colors.white, size: 20),
                                       const SizedBox(width: 8),
                                       Text(
-                                        '$availableCount مادة متاحة للشراء',
+                                        '$availableCount ${t['available_materials_count']!}',
                                         style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                                       ),
                                     ],
@@ -125,23 +126,23 @@ class FactoryHomeScreen extends ConsumerWidget {
                     ),
                   ),
                 ),
-                bottom: const TabBar(
+                bottom: TabBar(
                   indicatorColor: Colors.white,
                   indicatorWeight: 3,
                   labelColor: Colors.white,
                   unselectedLabelColor: Colors.white70,
                   tabs: [
-                    Tab(text: 'مواد متاحة', icon: Icon(Icons.inventory_2)),
-                    Tab(text: 'مشترياتي', icon: Icon(Icons.shopping_bag)),
+                    Tab(text: t['available_materials']!, icon: const Icon(Icons.inventory_2)),
+                    Tab(text: t['my_purchases']!, icon: const Icon(Icons.shopping_bag)),
                   ],
                 ),
               ),
             ];
           },
-          body: const TabBarView(
+          body: TabBarView(
             children: [
-              _AvailableMaterialsTab(),
-              _MyPurchasesTab(),
+              _AvailableMaterialsTab(t: t),
+              _MyPurchasesTab(t: t),
             ],
           ),
         ),
@@ -151,24 +152,26 @@ class FactoryHomeScreen extends ConsumerWidget {
 }
 
 class _AvailableMaterialsTab extends StatelessWidget {
-  const _AvailableMaterialsTab();
+  final Map<String, String> t;
 
-  final wasteTypes = const {
-    'plastic': {'name': 'بلاستيك', 'icon': Icons.local_drink, 'color': Colors.blue, 'price': 5.0},
-    'paper': {'name': 'ورق وكرتون', 'icon': Icons.description, 'color': Colors.brown, 'price': 3.0},
-    'glass': {'name': 'زجاج', 'icon': Icons.wine_bar, 'color': Colors.green, 'price': 4.0},
-    'metal': {'name': 'معادن', 'icon': Icons.settings, 'color': Colors.grey, 'price': 8.0},
-    'electronics': {'name': 'إلكترونيات', 'icon': Icons.devices, 'color': Colors.purple, 'price': 15.0},
-    'organic': {'name': 'عضوية', 'icon': Icons.eco, 'color': Colors.lightGreen, 'price': 2.0},
+  const _AvailableMaterialsTab({required this.t});
+
+  Map<String, Map<String, dynamic>> _getWasteTypes() => {
+    'plastic': {'name': t['plastic']!, 'icon': Icons.recycling_rounded, 'color': AppColors.wastePlastic, 'price': 5.0},
+    'paper': {'name': t['paper_cardboard']!, 'icon': Icons.article_rounded, 'color': AppColors.wastePaper, 'price': 3.0},
+    'wood': {'name': t['wood']!, 'icon': Icons.park_rounded, 'color': AppColors.wasteWood, 'price': 4.0},
+    'glass': {'name': t['glass']!, 'icon': Icons.liquor_rounded, 'color': AppColors.wasteGlass, 'price': 4.0},
+    'metal': {'name': t['metal']!, 'icon': Icons.hardware_rounded, 'color': AppColors.wasteMetal, 'price': 8.0},
+    'electronics': {'name': t['electronics']!, 'icon': Icons.memory_rounded, 'color': AppColors.wasteElectronics, 'price': 15.0},
+    'organic': {'name': t['organic']!, 'icon': Icons.compost_rounded, 'color': AppColors.wasteOrganic, 'price': 2.0},
+    'other': {'name': t['other']!, 'icon': Icons.category_rounded, 'color': AppColors.wasteOther, 'price': 1.0},
   };
 
   @override
   Widget build(BuildContext context) {
+    final wasteTypes = _getWasteTypes();
     return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance
-          .collection('requests')
-          .where('status', isEqualTo: 'completed')
-          .snapshots(),
+      stream: RequestService.getCompletedRequests(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
@@ -190,14 +193,14 @@ class _AvailableMaterialsTab extends StatelessWidget {
                   child: Icon(Icons.inventory_2, size: 60, color: Colors.grey.shade400),
                 ),
                 const SizedBox(height: 16),
-                const Text(
-                  'لا توجد مواد متاحة للشراء',
-                  style: TextStyle(fontSize: 18, color: Colors.grey, fontWeight: FontWeight.w500),
+                Text(
+                  t['no_materials_available']!,
+                  style: const TextStyle(fontSize: 18, color: Colors.grey, fontWeight: FontWeight.w500),
                 ),
                 const SizedBox(height: 8),
-                const Text(
-                  'سيتم إشعارك عند توفر مواد جديدة',
-                  style: TextStyle(color: Colors.grey),
+                Text(
+                  t['will_notify_new_materials']!,
+                  style: const TextStyle(color: Colors.grey),
                 ),
               ],
             ),
@@ -210,7 +213,7 @@ class _AvailableMaterialsTab extends StatelessWidget {
           itemBuilder: (context, index) {
             final doc = requests[index];
             final request = doc.data() as Map<String, dynamic>;
-            return _MaterialCard(docId: doc.id, request: request, wasteTypes: wasteTypes);
+            return _MaterialCard(docId: doc.id, request: request, wasteTypes: wasteTypes, t: t);
           },
         );
       },
@@ -222,11 +225,13 @@ class _MaterialCard extends StatelessWidget {
   final String docId;
   final Map<String, dynamic> request;
   final Map<String, Map<String, dynamic>> wasteTypes;
+  final Map<String, String> t;
 
   const _MaterialCard({
     required this.docId,
     required this.request,
     required this.wasteTypes,
+    required this.t,
   });
 
   @override
@@ -282,7 +287,7 @@ class _MaterialCard extends StatelessWidget {
                           Icon(Icons.scale, size: 14, color: Colors.grey.shade600),
                           const SizedBox(width: 4),
                           Text(
-                            '$quantity كجم',
+                            '$quantity ${t['kg']!}',
                             style: TextStyle(color: Colors.grey.shade600),
                           ),
                         ],
@@ -294,15 +299,15 @@ class _MaterialCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Text(
-                      '$totalPrice د.ج',
+                      '$totalPrice ${t['da']!}',
                       style: const TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
-                        color: Color(0xFF4CAF50),
+                        color: AppColors.primary,
                       ),
                     ),
                     Text(
-                      '$pricePerKg د.ج/كجم',
+                      '$pricePerKg ${t['da_per_kg']!}',
                       style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
                     ),
                   ],
@@ -323,9 +328,9 @@ class _MaterialCard extends StatelessWidget {
             child: ElevatedButton.icon(
               onPressed: () => _buyMaterial(context, totalPrice),
               icon: const Icon(Icons.shopping_cart),
-              label: Text('شراء بـ $totalPrice د.ج'),
+              label: Text('${t['buy_for_price']!} $totalPrice ${t['da']!}'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF4CAF50),
+                backgroundColor: AppColors.primary,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -339,41 +344,39 @@ class _MaterialCard extends StatelessWidget {
 
   Future<void> _buyMaterial(BuildContext context, double price) async {
     try {
-      await FirebaseFirestore.instance.collection('requests').doc(docId).update({
-        'status': 'sold',
-        'soldAt': FieldValue.serverTimestamp(),
-        'soldPrice': price,
-      });
+      await RequestService.markAsSold(docId: docId, price: price);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('تم الشراء بنجاح!'), backgroundColor: Colors.green),
+        SnackBar(content: Text(t['purchase_success']!), backgroundColor: Colors.green),
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('خطأ: $e'), backgroundColor: Colors.red),
+        SnackBar(content: Text('${t['error']!}: $e'), backgroundColor: Colors.red),
       );
     }
   }
 }
 
 class _MyPurchasesTab extends StatelessWidget {
-  const _MyPurchasesTab();
+  final Map<String, String> t;
 
-  final wasteTypes = const {
-    'plastic': {'name': 'بلاستيك', 'icon': Icons.local_drink, 'color': Colors.blue},
-    'paper': {'name': 'ورق وكرتون', 'icon': Icons.description, 'color': Colors.brown},
-    'glass': {'name': 'زجاج', 'icon': Icons.wine_bar, 'color': Colors.green},
-    'metal': {'name': 'معادن', 'icon': Icons.settings, 'color': Colors.grey},
-    'electronics': {'name': 'إلكترونيات', 'icon': Icons.devices, 'color': Colors.purple},
-    'organic': {'name': 'عضوية', 'icon': Icons.eco, 'color': Colors.lightGreen},
+  const _MyPurchasesTab({required this.t});
+
+  Map<String, Map<String, dynamic>> _getWasteTypes() => {
+    'plastic': {'name': t['plastic']!, 'icon': Icons.recycling_rounded, 'color': AppColors.wastePlastic},
+    'paper': {'name': t['paper_cardboard']!, 'icon': Icons.article_rounded, 'color': AppColors.wastePaper},
+    'wood': {'name': t['wood']!, 'icon': Icons.park_rounded, 'color': AppColors.wasteWood},
+    'glass': {'name': t['glass']!, 'icon': Icons.liquor_rounded, 'color': AppColors.wasteGlass},
+    'metal': {'name': t['metal']!, 'icon': Icons.hardware_rounded, 'color': AppColors.wasteMetal},
+    'electronics': {'name': t['electronics']!, 'icon': Icons.memory_rounded, 'color': AppColors.wasteElectronics},
+    'organic': {'name': t['organic']!, 'icon': Icons.compost_rounded, 'color': AppColors.wasteOrganic},
+    'other': {'name': t['other']!, 'icon': Icons.category_rounded, 'color': AppColors.wasteOther},
   };
 
   @override
   Widget build(BuildContext context) {
+    final wasteTypes = _getWasteTypes();
     return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance
-          .collection('requests')
-          .where('status', isEqualTo: 'sold')
-          .snapshots(),
+      stream: RequestService.getSoldRequests(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
@@ -395,14 +398,14 @@ class _MyPurchasesTab extends StatelessWidget {
                   child: Icon(Icons.shopping_bag, size: 60, color: Colors.grey.shade400),
                 ),
                 const SizedBox(height: 16),
-                const Text(
-                  'لا توجد مشتريات',
-                  style: TextStyle(fontSize: 18, color: Colors.grey, fontWeight: FontWeight.w500),
+                Text(
+                  t['no_purchases']!,
+                  style: const TextStyle(fontSize: 18, color: Colors.grey, fontWeight: FontWeight.w500),
                 ),
                 const SizedBox(height: 8),
-                const Text(
-                  'اشترِ مواد من قائمة المواد المتاحة',
-                  style: TextStyle(color: Colors.grey),
+                Text(
+                  t['buy_from_available']!,
+                  style: const TextStyle(color: Colors.grey),
                 ),
               ],
             ),
@@ -414,7 +417,7 @@ class _MyPurchasesTab extends StatelessWidget {
           itemCount: requests.length,
           itemBuilder: (context, index) {
             final request = requests[index].data() as Map<String, dynamic>;
-            return _PurchaseCard(request: request, wasteTypes: wasteTypes);
+            return _PurchaseCard(request: request, wasteTypes: wasteTypes, t: t);
           },
         );
       },
@@ -425,8 +428,9 @@ class _MyPurchasesTab extends StatelessWidget {
 class _PurchaseCard extends StatelessWidget {
   final Map<String, dynamic> request;
   final Map<String, Map<String, dynamic>> wasteTypes;
+  final Map<String, String> t;
 
-  const _PurchaseCard({required this.request, required this.wasteTypes});
+  const _PurchaseCard({required this.request, required this.wasteTypes, required this.t});
 
   @override
   Widget build(BuildContext context) {
@@ -470,7 +474,7 @@ class _PurchaseCard extends StatelessWidget {
                   style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                 ),
                 Text(
-                  '${request['quantity']} كجم',
+                  '${request['quantity']} ${t['kg']!}',
                   style: TextStyle(color: Colors.grey.shade600),
                 ),
               ],
@@ -483,7 +487,7 @@ class _PurchaseCard extends StatelessWidget {
               borderRadius: BorderRadius.circular(20),
             ),
             child: Text(
-              '${request['soldPrice']} د.ج',
+              '${request['soldPrice']} ${t['da']!}',
               style: const TextStyle(
                 color: Colors.green,
                 fontWeight: FontWeight.bold,
